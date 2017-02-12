@@ -1,0 +1,178 @@
+<link rel="import" href="../../bower_components/google-signin/google-signin.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="../../dist/components/work-counter.html">
+
+<dom-module id="projects-app">
+    <template>
+        <style>
+            google-signin {
+                position: absolute;
+                bottom: 55vh;
+                right: calc(50vw - 46px);
+                transition: right 300ms, bottom 300ms;
+            }
+
+            google-signin.signed-in {
+                position: fixed;
+                bottom: 15px;
+                right: 15px;
+            }
+
+            @media (min-width: 768px) {
+                google-signin.signed-in {
+                    bottom: 30px;
+                    right: 30px;
+                }
+            }
+
+            paper-progress {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+            }
+
+            paper-progress[disabled] {
+                display: none;
+            }
+
+            .reports-list {
+                min-width: 200px;
+                position: relative;
+            }
+        </style>
+
+        <div id="reportsList" class="reports-list pull-left" hidden$="[[isListHidden(projects.splices)]]">
+            <p>Reports links:</p>
+            <ul class="mobile-friendly">
+                <template is="dom-repeat" items="[[projects]]" sort="_sortProjects">
+                    <li><a href="[[item.reportUrl]]" target="_blank">[[item.name]]</a></li>
+                </template>
+            </ul>
+            <paper-progress id="progress" disabled></paper-progress>
+        </div>
+        <work-counter id="workCounter" class="pull-left"></work-counter>
+
+        <google-signin
+                theme="dark"
+                scopes="https://www.googleapis.com/auth/spreadsheets.readonly"
+                client-id="182325291554-sot8bgmf73k9p6ifal0h4vccourcf5pu.apps.googleusercontent.com"
+                on-google-signin-success="onSignIn"
+                on-google-signout-attempted="onSignOut"></google-signin>
+        <iron-ajax
+                id="ajax"
+                handle-as="json"
+                on-response="handleResponse"
+                on-error="handleError"></iron-ajax>
+    </template>
+    <script>
+        Polymer({
+            is: 'projects-app',
+            properties: {
+                projects: {
+                    type: Array,
+                    value: []
+                }
+            },
+            ready: function () {
+                this.workData = [];
+                this.spreadsheetsList = [
+                    '13S8BaeqtLhS_s-_pxj2yPHNBlioxNK45IqtjvinTVBc',
+                    '16YKAag1OL1lvA12hWyGb-GVL79-TzaNERgTFeelrOdY',
+                    '19qrqk58cQ5N0E9tHwsR-ggd57iGYG56b24O2SNvFzag',
+                    '1HhITyQL2pfiuKG6MxK-hLOsvJi2vpMc5T3OY77JluEM',
+                    '1iBsQiL-OCT5uPodCgPe11H3pMqFg0i1xUQQMiQ5Mc4E',
+                    '1mpzxFSYHGMAYp-87EnNVTRo4HfhEHeilZIl7AF6tfEg',
+                    '1mxdVGy3WMLVjFxGXlxWJQl35qrDy3tOfzMjk-8GHs4I',
+                    '1neh8UNXY4o55ECxWyEasollNGUMAdd5ijHMRvrUPC90',
+                    '1rENFLWW7t8CJ1PWnzpJuKRmFDjeIJRxOj-voI7iEOkw',
+                    '1UNyAE-sS5c_YXwfA5PGALnUa0_EnUbpDsgUNDv_jB9o',
+                    '1UrHA-gx3dTmKj2R4qBkp4jCnSGu8lb-O8RczC-oY-pY'
+                ];
+                this.$.ajax.params = {includeGridData: true};
+                this.loadingCountdown = this.spreadsheetsList.length;
+            },
+            onSignIn: function (e) {
+                var i,
+                    length = this.spreadsheetsList.length,
+                    oauthToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+
+                this.toggleClass('signed-in', true, e.target);
+
+                this.$.ajax.headers = {
+                    'Authorization': 'Bearer ' + oauthToken.access_token
+                };
+                for (i = 0; i < length; i++) {
+                    this.$.ajax.url = 'https://sheets.googleapis.com/v4/spreadsheets/' + this.spreadsheetsList[i];
+                    this.$.ajax.generateRequest();
+                }
+                this.$.progress.disabled = false;
+            },
+            onSignOut: function (e) {
+                this.toggleClass('signed-in', false, e.target);
+                gapi.auth2.getAuthInstance().disconnect();
+                this.projects = [];
+                this.$.workCounter.data = [];
+                setTimeout(function () {
+                    window.location.reload();
+                }, 300);
+            },
+            handleResponse: function (e) {
+                var id, index;
+                this.push('projects', {
+                    name: e.detail.response.properties.title.replace(/.*?\((.*?)\).*/i, '$1'),
+                    reportUrl: e.detail.response.spreadsheetUrl
+                });
+
+                e.detail.response.sheets.every(function (sheet) {
+                    if (sheet.properties.gridProperties.columnCount < 11)
+                        return false;
+
+                    var i, row,
+                        length = sheet.data[0].rowData.length;
+                    for (i = 2; i < length; i++) {
+                        row = sheet.data[0].rowData[i];
+                        if (row.values != null && row.values[0].effectiveValue != null && row.values[1].effectiveValue != null) {
+                            this.push('workData', {
+                                name: row.values[0].formattedValue,
+                                date: this.convert2JsTimestamp(row.values[1].effectiveValue.numberValue),
+                                value: parseInt(row.values[10].formattedValue)
+                            });
+                        }
+                    }
+                    return true
+                }, this);
+                this._progress();
+            },
+            handleError: function () {
+                this._progress();
+            },
+            _progress: function () {
+                this.loadingCountdown -= 1;
+                this.$.progress.value = Math.round((this.spreadsheetsList.length - this.loadingCountdown) * (100 / this.spreadsheetsList.length));
+                if (this.loadingCountdown === 0) {
+                    this.$.workCounter.data = this.workData;
+                    this.$.progress.disabled = true;
+                }
+            },
+            _sortProjects: function (a, b) {
+                if (a.name > b.name) {
+                    return 1;
+                }
+                if (a.name < b.name) {
+                    return -1;
+                }
+                return 0;
+            },
+            isListHidden: function () {
+                return this.projects.length === 0;
+            },
+            convert2JsTimestamp: function (value) {
+                var daysSince01Jan1970 = value - 25569; // 25569 = days TO Unix Time Reference
+                // Convert to numeric unix time
+                return daysSince01Jan1970 * 24 * 60 * 60 * 1000;
+            }
+        })
+    </script>
+</dom-module>
