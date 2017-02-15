@@ -12,11 +12,11 @@ var htmlMin = require('gulp-htmlmin');
 var postCssHtml = require('gulp-html-postcss');
 var gulpHtmlEntities = require('gulp-html-entities');
 
-gulp.task('default', ['sass', 'components'],function() {
+gulp.task('default', ['sass', 'components'], function () {
     gulp.src('dist/css/*.css')
         .pipe(postCss([
             flexibility,
-            autoprefixer({browsers: ['last 3 versions'], cascade: false}),
+            autoprefixer({browsers: ['> 1%', 'last 3 versions'], cascade: false}),
             cssNano({safe: true})
         ]))
         .pipe(gulp.dest('dist/css'));
@@ -40,7 +40,7 @@ gulp.task('default', ['sass', 'components'],function() {
         .pipe(htmlMin({removeComments: true}))
         .pipe(postCssHtml([
             flexibility,
-            autoprefixer({browsers: ['last 3 versions'], cascade: false}),
+            autoprefixer({browsers: ['> 1%', 'last 3 versions'], cascade: false}),
             cssNano({safe: true})
         ]))
         .pipe(gulpHtmlEntities('decode'))

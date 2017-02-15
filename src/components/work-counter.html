@@ -8,7 +8,9 @@
             :host { display: block; }
         </style>
 
-        <p>Reports analyze:</p>
+        <p>
+            Reports analyze:
+        </p>
         <template is="dom-repeat" items="[[visibleMonths]]">
             <p>[[item.month]]</p>
             <ul>
@@ -20,6 +22,7 @@
         <div class="text-center">
             <button class$="btn btn-pseudo [[_showMoreClass(step, months.*)]]" on-tap="_showMore">Show more</button>
         </div>
+        <content></content>
     </template>
     <script>
         Polymer({
@@ -34,11 +37,6 @@
                 step: {
                     type: Number,
                     value: 3
-                },
-                hidden: {
-                    type: Boolean,
-                    computed: 'isHidden(data.splices)',
-                    reflectToAttribute: true
                 }
             },
             observers: [
@@ -109,9 +107,6 @@
                     return '';
                 else
                     return 'hidden';
-            },
-            isHidden: function () {
-                return this.data.length === 0;
             }
         })
     </script>

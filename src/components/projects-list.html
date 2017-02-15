@@ -1,0 +1,37 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="projects-list">
+    <template>
+        <p>Reports links:</p>
+        <ul class="mobile-friendly">
+            <template is="dom-repeat" items="[[data]]" sort="_sortProjects">
+                <li><a href="//docs.google.com/spreadsheets/d/[[item.id]]/edit" target="_blank">[[item.name]]</a></li>
+            </template>
+        </ul>
+    </template>
+    <script>
+        Polymer({
+            is: 'projects-list',
+            properties: {
+                data: Array,
+                hidden: {
+                    type: Boolean,
+                    reflectToAttribute: true,
+                    computed: 'isHidden(data.splices)'
+                }
+            },
+            _sortProjects: function (a, b) {
+                if (a.name > b.name) {
+                    return 1;
+                }
+                if (a.name < b.name) {
+                    return -1;
+                }
+                return 0;
+            },
+            isHidden: function () {
+                return this.data.length === 0;
+            }
+        })
+    </script>
+</dom-module>
