@@ -1,0 +1,81 @@
+<link rel="import" href="components/duration-string.html">
+<link rel="import" href="shared-styles/style-common.html">
+
+<dom-module id="view-user">
+    <template>
+        <style is="custom-style" include="style-common"></style>
+
+
+        <div class="content">
+            <table class="table">
+                <tbody>
+                <template is="dom-repeat" items="{{workData}}" sort="sort" filter="{{filter(_name)}}">
+                    <tr>
+                        <td class="text-nowrap">[[longDate(item.date)]]
+                        <td>{{projectName(item.id)}}
+                        <td>[[item.title]]
+                        <td class="text-nowrap">
+                            <duration-string minutes="[[item.value]]"></duration-string>
+                </template>
+                </tbody>
+            </table>
+        </div>
+    </template>
+    <script>
+        Polymer({
+            is: 'view-user',
+            properties: {
+                route: Object,
+                projects: Array,
+                workData: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    }
+                },
+                _name: {type: String, computed: '_getName(route.path)'}
+            },
+            ready: function () {
+                this.loadingCountdown = this.projects.length;
+            },
+            shortDate: function (timestamp) {
+                var date, months;
+                if (!Number.isInteger(timestamp))
+                    return '?';
+
+                months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                date = new Date(timestamp);
+
+                return months[date.getMonth()] + ', ' + date.getDate();
+            },
+            longDate: function (timestamp) {
+                var date;
+                if (!Number.isInteger(timestamp))
+                    return '?';
+                date = new Date(timestamp);
+
+                return this.shortDate(timestamp) + ' ' + date.getFullYear();
+            },
+            sort: function (a, b) {
+                return b.date - a.date;
+            },
+            projectName: function (id) {
+                var i, len, project;
+                for (i = 0, len = this.projects.length; i < len; i++) {
+                    project = this.projects[i];
+                    if (project.id === id)
+                        return project.name;
+                }
+
+            },
+            filter: function (name) {
+                return function (item) {
+                    return item.name === name
+                };
+            },
+            _getName: function (path) {
+                return path.replace('/', '');
+            }
+        })
+    </script>
+</dom-module>

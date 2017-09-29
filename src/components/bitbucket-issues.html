@@ -1,0 +1,131 @@
+<link rel="import" href="/bower_components/paper-button/paper-button.html">
+<link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="bitbucket-issues">
+    <template>
+        <iron-ajax
+                id="projects"
+                url="https://api.bitbucket.org/2.0/repositories/vistro/"
+                handle-as="json"
+                on-response="handleProjects"></iron-ajax>
+
+        <iron-ajax
+                id="issues"
+                handle-as="json"
+                on-response="getIssues"></iron-ajax>
+
+        <paper-button on-tap="bitbucketAuth">Log in Bitbucket</paper-button>
+
+        <br>
+        <template is="dom-repeat" items="[[users(issues.splices)]]">
+            [[item]] [[countOfIssues(issues.splices, item)]]<br>
+        </template>
+
+        <br>
+        <ol>
+            <template is="dom-repeat" items="[[unclosed]]">
+                <li><a href="[[item.href]]" target="_blank">[[item.title]]</a>
+            </template>
+        </ol>
+
+        <br><br>
+        [[progress(countOfRequests)]]%
+    </template>
+    <script>
+        Polymer({
+            is: 'bitbucket-issues',
+            properties: {
+                accessToken: {type: String, observer: 'tokenChanged'},
+                repositories: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    }
+                },
+                issues: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    }
+                },
+                unclosed: {
+                    type: Array,
+                    value: []
+                },
+                countOfRepositories: Number,
+                countOfRequests: {type: Number, value: 0}
+            },
+            ready: function () {
+                var parsedUrl, accessToken;
+                if (window.location.href.match('#access_token'))
+                    this.accessToken = decodeURIComponent(window.location.href.replace(/^.*?#access_token=(.*?)\&.*$/, '$1').replace(/\+/g, ' '));
+            },
+            bitbucketAuth: function () {
+                window.location.href = 'https://bitbucket.org/site/oauth2/authorize?client_id=ZmyJ9sXcmxUSmRruk9&response_type=token';
+            },
+            tokenChanged: function () {
+                this.$.projects.params = {access_token: this.accessToken, pagelen: 100};
+                this.$.projects.generateRequest();
+
+            },
+            handleProjects: function (e) {
+                var repo;
+                for (var i = 0, len = e.detail.response.values.length; i < len; i++) {
+                    repo = e.detail.response.values[i];
+                    if (repo.has_issues)
+                        this.repositories.push(repo.slug);
+                }
+                this.countOfRepositories = this.repositories.length;
+                this.getIssues();
+            },
+            getIssues: function (e) {
+                var repo, issue;
+                if (e && e.detail.response) {
+                    for (var i = 0, len = e.detail.response.values.length; i < len; i++) {
+                        issue = e.detail.response.values[i];
+                        this.push('issues', issue);
+                        if (issue.state === 'resolved')
+                            this.push('unclosed', {
+                                href: issue.links.html.href,
+                                title: issue.reporter.username + ': ' + issue.title
+                            });
+                    }
+                    this.countOfRequests++;
+                    console.log(this.unclosed);
+                }
+
+                if (this.repositories.length > 0) {
+                    repo = this.shift('repositories');
+                    this.$.issues.url = 'https://api.bitbucket.org/2.0/repositories/vistro/' + repo + '/issues';
+                    this.$.issues.params = {
+                        access_token: this.accessToken,
+                        pagelen: 100,
+                        q: '(state != "closed" AND state != "resolved") OR (reporter.username != "cimmwolf" AND reporter.username != "ivda" AND state = "resolved")'
+                    };
+                    this.$.issues.generateRequest();
+                }
+            },
+            users: function (issues) {
+                var users = [], issue;
+                for (var i = 0, len = this.issues.length; i < len; i++) {
+                    issue = this.issues[i];
+                    if (issue.assignee && users.indexOf(issue.assignee.display_name) === -1)
+                        users.push(issue.assignee.display_name);
+                }
+                return users;
+            },
+            countOfIssues: function (changes, user) {
+                var issue, count = 0;
+                for (var i = 0, len = this.issues.length; i < len; i++) {
+                    issue = this.issues[i];
+                    if (issue.assignee && issue.assignee.display_name === user)
+                        count++;
+                }
+                return count;
+            },
+            progress: function () {
+                return !this.countOfRepositories ? 0 : Math.floor(100 - (this.countOfRepositories - this.countOfRequests) / this.countOfRepositories * 100);
+            }
+        })
+    </script>
+</dom-module>

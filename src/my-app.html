@@ -1,0 +1,333 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="/bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="/bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="/bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="/bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="/bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="/bower_components/app-route/app-location.html">
+<link rel="import" href="/bower_components/app-route/app-route.html">
+<link rel="import" href="/bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="/bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="/bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="/bower_components/google-signin/google-signin.html">
+<link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="/bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="components/my-icons.html">
+
+<dom-module id="my-app">
+    <template>
+        <style is="custom-style" include="style-common"></style>
+        <style>
+            :host {
+                --app-secondary-color: black;
+                --app-drawer-content-container: {
+                    background: #363739 url(/bower_components/d-style/src/img/main-background.jpg); };
+                display: block;
+            }
+
+            app-header {
+                color: #fff;
+                background-color: rgba(0, 0, 0, 0.3);
+            }
+
+            app-header paper-icon-button {
+                --paper-icon-button-ink-color: white;
+            }
+
+            .drawer-list {
+                margin: 0 20px;
+            }
+
+            .drawer-list a {
+                display: block;
+                padding: 0 16px;
+                text-decoration: none;
+                color: var(--app-secondary-color);
+                line-height: 40px;
+            }
+
+            .drawer-list a.iron-selected {
+                color: black;
+                font-weight: bold;
+            }
+
+            google-signin {
+                position: absolute;
+                bottom: 55vh;
+                right: calc(50vw - 46px);
+                transition: right 300ms, bottom 300ms;
+            }
+
+            google-signin.signed-in {
+                position: fixed;
+                bottom: 15px;
+                right: 15px;
+            }
+
+            iron-pages {
+                padding-top: 1em; }
+
+            paper-progress { width: 100% }
+
+            paper-progress[disabled] { display: none }
+
+            @media (min-width: 640px) {
+                :host {
+                    --app-drawer-content-container: {
+                        background: rgba(0, 0, 0, 0.3) };
+                }
+            }
+
+            @media (min-width: 768px) {
+                google-signin.signed-in {
+                    bottom: 30px;
+                    right: 30px;
+                }
+            }
+        </style>
+
+        <iron-ajax
+                id="ajax"
+                handle-as="json"
+                on-response="handleResponse"
+                on-error="handleError"
+                params='{"includeGridData": true, "fields": "spreadsheetId,sheets.data.rowData.values.effectiveValue"}'></iron-ajax>
+
+        <app-location route="{{route}}" url-space-regex="^[[rootPath]]"></app-location>
+        <app-route
+                route="{{route}}"
+                pattern="[[rootPath]]:page"
+                data="{{routeData}}"
+                tail="{{subroute}}"></app-route>
+
+
+        <!-- Main content -->
+        <app-header-layout>
+
+            <app-header condenses reveals effects="waterfall">
+                <app-toolbar>
+                    <template is="dom-if" if="[[isSubPage(route)]]">
+                        <a href="/">
+                            <paper-icon-button icon="my-icons:arrow-back"></paper-icon-button>
+                        </a>
+                    </template>
+                    <div main-title>{{_computeTitle(page)}}</div>
+                    <paper-progress id="progress" disabled bottom-item></paper-progress>
+                </app-toolbar>
+            </app-header>
+
+            <iron-pages
+                    selected="[[page]]"
+                    attr-for-selected="name"
+                    fallback-selection="view404"
+                    role="main">
+                <view-projects name="projects" projects="[[projects]]" work-data="[[workData]]"></view-projects>
+                <view-user name="user" route="{{subroute}}" projects="[[projects]]"
+                           work-data="[[workData]]"></view-user>
+            </iron-pages>
+        </app-header-layout>
+
+        <google-signin
+                theme="dark"
+                scopes="https://www.googleapis.com/auth/spreadsheets.readonly"
+                client-id="182325291554-sot8bgmf73k9p6ifal0h4vccourcf5pu.apps.googleusercontent.com"
+                signed-in="{{signedIn}}"></google-signin>
+
+    </template>
+
+    <script>
+        Polymer({
+            is: 'my-app',
+
+            properties: {
+                page: {
+                    type: String,
+                    reflectToAttribute: true,
+                    observer: '_pageChanged'
+                },
+                projects: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            {id: '13S8BaeqtLhS_s-_pxj2yPHNBlioxNK45IqtjvinTVBc', name: 'Chopacho.ru'},
+                            {id: '16YKAag1OL1lvA12hWyGb-GVL79-TzaNERgTFeelrOdY', name: 'Vistro.ru'},
+                            {id: '19qrqk58cQ5N0E9tHwsR-ggd57iGYG56b24O2SNvFzag', name: '147school.ru'},
+                            {id: '1HhITyQL2pfiuKG6MxK-hLOsvJi2vpMc5T3OY77JluEM', name: 'Luxoutlet.ru'},
+                            {id: '1iBsQiL-OCT5uPodCgPe11H3pMqFg0i1xUQQMiQ5Mc4E', name: 'DSystem'},
+                            {id: '1mpzxFSYHGMAYp-87EnNVTRo4HfhEHeilZIl7AF6tfEg', name: 'Kasok.ru'},
+                            {id: '1mxdVGy3WMLVjFxGXlxWJQl35qrDy3tOfzMjk-8GHs4I', name: 'Eco74.com'},
+                            {id: '1neh8UNXY4o55ECxWyEasollNGUMAdd5ijHMRvrUPC90', name: 'Galin74.ru', hidden: true},
+                            {id: '1rENFLWW7t8CJ1PWnzpJuKRmFDjeIJRxOj-voI7iEOkw', name: 'Integros.biz'},
+                            {id: '1UNyAE-sS5c_YXwfA5PGALnUa0_EnUbpDsgUNDv_jB9o', name: 'Fondaero.ru'},
+                            {
+                                id: '1UrHA-gx3dTmKj2R4qBkp4jCnSGu8lb-O8RczC-oY-pY',
+                                name: 'Kasok.ru (партнёры)',
+                                hidden: true
+                            }
+                        ]
+                    }
+                },
+                users: {
+                    type: Array,
+                    value: function () {
+                        return [
+                            {'name': 'Алена'},
+                            {'name': 'Дарья'},
+                            {'name': 'Денис'},
+                            {'name': 'Ксения'}
+                        ]
+                    }
+                },
+                signedIn: {
+                    type: Boolean,
+                    observer: '_signedChange'
+                },
+                workData: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    }
+                }
+            },
+
+            observers: [
+                '_routePageChanged(routeData.page)'
+            ],
+
+            _routePageChanged: function (page) {
+                this.page = page || 'projects';
+
+                if (!this.$.drawer.persistent) {
+                    this.$.drawer.close();
+                }
+            },
+
+            _pageChanged: function (page) {
+                // Load page import on demand. Show 404 page if fails
+                var resolvedPageUrl = this.resolveUrl('view-' + page + '.html');
+                this.importHref(resolvedPageUrl, null, this._showPage404, true);
+            },
+
+            _showPage404: function () {
+                this.page = 'view404';
+            },
+            _computeTitle: function (page) {
+                var titles, title;
+                titles = {
+                    'projects': 'Vistro projects',
+                    'user': 'User detail'
+                };
+                title = titles[page] ? titles[page] : page;
+                if (page === 'user')
+                    title += ' ' + this.route.path.split('/')[2];
+                return title;
+            },
+            _signedChange: function (signedIn, previousValue) {
+                this.toggleClass('signed-in', signedIn, this.$$('google-signin'));
+
+                if (signedIn) {
+                    var i,
+                        length = this.projects.length,
+                        oauthToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+
+                    this.$.ajax.headers = {
+                        'Authorization': 'Bearer ' + oauthToken.access_token
+                    };
+                    for (i = 0; i < length; i++) {
+                        this.$.ajax.url = 'https://sheets.googleapis.com/v4/spreadsheets/' + this.projects[i].id;
+                        this.$.ajax.generateRequest();
+                    }
+                    this.loadingCountdown = this.projects.length;
+                    this.$.progress.disabled = false;
+                } else if (previousValue) {
+                    gapi.auth2.getAuthInstance().disconnect();
+                    this.projects = [];
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 300);
+                }
+            },
+            handleResponse: function (e) {
+                var id, index, i, row,
+                    done = 0,
+                    rowData = e.detail.response.sheets[0].data[0].rowData,
+                    length = rowData.length,
+                    firstRow = rowData[0].values, projectIndex;
+
+                for (i = 2; i < length; i++) {
+                    row = rowData[i];
+                    if (row.values != null && row.values[0].effectiveValue != null && row.values[1].effectiveValue != null && row.values[10].effectiveValue != null) {
+                        done += row.values[10].effectiveValue.numberValue;
+                    }
+                }
+
+                projectIndex = false;
+                for (i = 0; i < this.projects.length; i++) {
+                    if (this.projects[i].id === e.detail.response.spreadsheetId) {
+                        this.set('projects.' + i + '.deadline', this.convert2JsTimestamp(firstRow[2].effectiveValue.numberValue));
+                        this.set('projects.' + i + '.workload', parseInt(firstRow[4].effectiveValue.numberValue) * 60);
+                        this.set('projects.' + i + '.workloadTail', parseInt(firstRow[firstRow.length - 1].effectiveValue.numberValue));
+                        this.set('projects.' + i + '.done', done);
+                        projectIndex = i;
+                        break;
+                    }
+                }
+
+                e.detail.response.sheets.every(function (sheet) {
+                    var i, row,
+                        length = sheet.data[0].rowData.length, logEntry;
+
+                    if (length < 11)
+                        return false;
+
+                    for (i = 2; i < length; i++) {
+                        row = sheet.data[0].rowData[i];
+                        if (row.values && row.values.length > 10 && row.values[0].effectiveValue && row.values[1].effectiveValue && row.values[10].effectiveValue) {
+                            logEntry = {
+                                id: e.detail.response.spreadsheetId,
+                                title: row.values[2].effectiveValue.stringValue,
+                                name: row.values[0].effectiveValue.stringValue,
+                                date: this.convert2JsTimestamp(row.values[1].effectiveValue.numberValue),
+                                value: row.values[10].effectiveValue.numberValue
+                            };
+                            this.push('workData', logEntry);
+                            if (projectIndex !== false)
+                                if (typeof this.projects[projectIndex].log === 'undefined')
+                                    this.set('projects.' + projectIndex + '.log', [logEntry]);
+                                else
+                                    this.push('projects.' + projectIndex + '.log', logEntry)
+                        }
+                    }
+                    return true
+                }, this);
+                this.progress();
+            },
+            progress: function () {
+                this.loadingCountdown -= 1;
+                this.$.progress.value = Math.round((this.projects.length - this.loadingCountdown) * (100 / this.projects.length));
+                if (this.loadingCountdown === 0) {
+                    this.$.progress.disabled = true;
+                }
+            },
+            convert2JsTimestamp: function (value) {
+                var daysSince01Jan1970 = value - 25569; // 25569 = days TO Unix Time Reference
+                // Convert to numeric unix time
+                return daysSince01Jan1970 * 24 * 60 * 60 * 1000;
+            },
+            isSubPage: function (route) {
+                return route.path.split('/').length > 2
+            }
+        });
+    </script>
+</dom-module>

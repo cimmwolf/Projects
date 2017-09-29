@@ -1,0 +1,65 @@
+<link rel="import" href="components/work-counter.html">
+<link rel="import" href="components/projects-list.html">
+
+<dom-module id="view-projects">
+    <template>
+        <style is="custom-style" include="style-common"></style>
+
+        <div class="content">
+            <projects-list data="[[projects]]" class="container-fluid pull-left"></projects-list>
+            <work-counter id="workCounter" class="pull-left container-fluid"
+                          months="[[months]]"></work-counter>
+        </div>
+
+    </template>
+    <script>
+        Polymer({
+            is: 'view-projects',
+            properties: {
+                projects: Array,
+                workData: {
+                    type: Array
+                },
+                months: {
+                    type: Array, value: function () {
+                        return []
+                    }
+                }
+            },
+            observers: ['_countByMonth(workData.*)'],
+            _countByMonth: function (projects) {
+                var i, j, k, mLength, month, noHave, data, length, months = [], len;
+                if (projects.path === 'workData.length') {
+                    this.addData(projects.base[projects.value - 1]);
+                } else if (projects.path === 'workData') {
+                    for (i = 0, len = projects.base.length; i < len; i++)
+                        this.addData(projects.base[i]);
+                }
+            },
+            addData: function (data) {
+                var i, j, k, mLength, month, noHave, length, months = [];
+                noHave = true;
+
+                var l = 0, momentMonth = moment().utc().startOf('month');
+
+                do {
+                    if (!this.months || !this.months[l++])
+                        this.push('months', {month: momentMonth.format('MMM, YY'), data: []});
+                    momentMonth.subtract(1, 'months');
+                } while (!momentMonth.isBefore(data.date, 'month'));
+                j = l - 1;
+
+                mLength = this.months[j].data.length;
+                for (k = 0; k < mLength; k++) {
+                    month = this.months[j].data[k];
+                    if (month.name === data.name) {
+                        noHave = false;
+                        this.set('months.' + j + '.data.' + k + '.value', month.value + data.value);
+                    }
+                }
+                if (noHave)
+                    this.push('months.' + j + '.data', {name: data.name, value: data.value});
+            }
+        })
+    </script>
+</dom-module>

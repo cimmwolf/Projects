@@ -1,0 +1,36 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+
+<dom-module id="duration-string">
+    <template>
+        <style>
+            :host { display: inline }
+        </style>
+        [[duration(minutes)]]
+    </template>
+    <script>
+        Polymer({
+            is: 'duration-string',
+            properties: {
+                minutes: Number
+            },
+            duration: function (minutes) {
+                var hString, hours;
+                if (!Number.isInteger(minutes))
+                    return '?';
+                hours = Math.floor(minutes / 60);
+                if (hours !== 0) {
+                    if (minutes / 60 > hours) {
+                        minutes = Math.round(60 * (minutes / 60 - hours));
+                        hString = hours + ' h. ' + minutes + ' min.';
+                    } else {
+                        hString = hours + ' h.';
+                    }
+                } else {
+                    hString = Math.round(60 * (minutes / 60 - hours)) + ' min.';
+                }
+                return hString;
+            }
+        })
+    </script>
+
+</dom-module>

@@ -1,13 +1,37 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="duration-string.html">
 
 <dom-module id="projects-list">
     <template>
+        <style is="custom-style" include="style-common"></style>
+        <style>
+            :host { padding-left: 15px; }
+
+            @media (min-width: 768px) {
+                :host { padding-left: 30px; }
+            }
+        </style>
         <p>Reports links:</p>
-        <ul class="mobile-friendly">
-            <template is="dom-repeat" items="[[data]]" sort="_sortProjects">
-                <li><a href="//docs.google.com/spreadsheets/d/[[item.id]]/edit" target="_blank">[[item.name]]</a></li>
+        <table class="table">
+            <tr>
+                <th>Name</th>
+                <th>Report date</th>
+                <th>ToDo</th>
+            </tr>
+            <template is="dom-repeat" items="[[data]]" sort="_sortProjects" filter="isVisible">
+                <tr>
+                    <td>
+                        <a href="//docs.google.com/spreadsheets/d/[[item.id]]/edit" target="_blank">[[item.name]]</a>
+                    </td>
+                    <td class$="[[alertDateClass(item.deadline)]]" title="[[longDate(item.deadline)]]">
+                        [[shortDate(item.deadline)]]
+                    </td>
+                    <td>
+                        <duration-string
+                                minutes="[[toDo(item.workload, item.done, item.workloadTail)]]"></duration-string>
+                    </td>
+                </tr>
             </template>
-        </ul>
+        </table>
     </template>
     <script>
         Polymer({
@@ -31,6 +55,36 @@
             },
             isHidden: function () {
                 return this.data.length === 0;
+            },
+            shortDate: function (timestamp) {
+                var date, months;
+                if (!Number.isInteger(timestamp))
+                    return '?';
+
+                months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                date = new Date(timestamp);
+
+                return months[date.getMonth()] + ', ' + date.getDate();
+            },
+            longDate: function (timestamp) {
+                var date;
+                if (!Number.isInteger(timestamp))
+                    return '?';
+                date = new Date(timestamp);
+
+                return this.shortDate(timestamp) + ' ' + date.getFullYear();
+            },
+            toDo: function (workload, done, workloadTail) {
+                if (!Number.isInteger(workload) || !Number.isInteger(done) || !Number.isInteger(workloadTail))
+                    return '?';
+                return workload - done + workloadTail;
+            },
+            alertDateClass: function (timestamp) {
+                if (Date.now() > timestamp)
+                    return 'text-danger';
+            },
+            isVisible: function (item) {
+                return !item.hidden;
             }
         })
     </script>

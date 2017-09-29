@@ -1,21 +1,30 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="duration-string.html">
+<link rel="import" href="../shared-styles/style-common.html">
 
 <script src="../../bower_components/moment/min/moment.min.js"></script>
 
 <dom-module id="work-counter">
     <template>
+        <style is="custom-style" include="style-common"></style>
         <style>
-            :host { display: block; }
+            :host { display: block; padding-left: 15px; }
+
+            @media (min-width: 768px) {
+                :host { padding-left: 30px; }
+            }
         </style>
 
         <p>
             Reports analyze:
         </p>
-        <template is="dom-repeat" items="[[visibleMonths]]">
+        <template is="dom-repeat" items="[[months]]" filter="_filterMonths">
             <p>[[item.month]]</p>
             <ul>
                 <template is="dom-repeat" items="[[item.data]]" as="person" sort="_sortNames">
-                    <li>[[person.name]]: [[_toHumanTimeString(person.value)]]</li>
+                    <li>
+                        <a href$="/user/[[person.name]]">[[person.name]]</a>:&nbsp;<duration-string
+                            minutes="[[person.value]]"></duration-string>
+                    </li>
                 </template>
             </ul>
         </template>
@@ -30,9 +39,10 @@
             properties: {
                 data: {type: Array, value: []},
                 months: {type: Array, value: []},
+                tst: Array,
                 visibleMonths: {
                     type: Array,
-                    computed: '_filterMonthsByIndex(months.*, step)'
+//                    computed: '_filterMonthsByIndex(months.*, step)'
                 },
                 step: {
                     type: Number,
@@ -43,23 +53,21 @@
                 '_countByMonth(data.*)'
             ],
             _countByMonth: function (changeRecord) {
-                var i, j, k, mLength, month, noHave,
-                    data = changeRecord.value,
-                    length = data.length;
-
-                for (i = 0; i < length; i++) {
+                var i, j, k, mLength, month, noHave, data, length;
+                if (changeRecord.path === 'data.length') {
+                    data = changeRecord.base[changeRecord.value - 1];
                     noHave = true;
-                    j = this._generateMonths(data[i].date);
+                    j = this._generateMonths(data.date);
                     mLength = this.months[j].data.length;
                     for (k = 0; k < mLength; k++) {
                         month = this.months[j].data[k];
-                        if (month.name == data[i].name) {
+                        if (month.name === data.name) {
                             noHave = false;
-                            month.value += data[i].value;
+                            this.set('months.' + j + '.data.' + k + '.value', month.value + data.value)
                         }
                     }
                     if (noHave)
-                        this.months[j].data.push({name: data[i].name, value: data[i].value});
+                        this.push('months.' + j + '.data', {name: data.name, value: data.value});
                 }
             },
             _generateMonths: function (date) {
@@ -72,8 +80,8 @@
                 } while (!month.isBefore(date, 'month'));
                 return i - 1;
             },
-            _filterMonthsByIndex: function () {
-                return this.months.slice(0, this.step);
+            _filterMonthsByIndex: function (months, step) {
+                return months.base.slice(0, step);
             },
             _sortNames: function (a, b) {
                 if (a.name > b.name) {
@@ -84,29 +92,20 @@
                 }
                 return 0;
             },
-            _toHumanTimeString: function (minutes) {
-                var hString, hours;
-                hours = Math.floor(minutes / 60);
-                if (hours !== 0) {
-                    if (minutes / 60 > hours) {
-                        minutes = Math.round(60 * (minutes / 60 - hours));
-                        hString = hours + ' h. ' + minutes + ' min.';
-                    } else {
-                        hString = hours + ' h.';
-                    }
-                } else {
-                    hString = Math.round(60 * (minutes / 60 - hours)) + ' min.';
-                }
-                return hString;
-            },
             _showMore: function () {
                 this.step += this.step;
             },
-            _showMoreClass: function () {
-                if (this.step < this.months.length)
-                    return '';
-                else
-                    return 'hidden';
+            _showMoreClass: function (step, months) {
+                if (months.base) {
+                    if (this.step < this.months.length)
+                        return '';
+                    else
+                        return 'hidden';
+                }
+            },
+            _filterMonths: function (item) {
+                var index = this.months.indexOf(item);
+                return index < 3;
             }
         })
     </script>
