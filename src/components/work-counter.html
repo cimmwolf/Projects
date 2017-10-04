@@ -1,3 +1,4 @@
+<link rel="import" href="/bower_components/paper-button/paper-button.html">
 <link rel="import" href="duration-string.html">
 <link rel="import" href="../shared-styles/style-common.html">
 
@@ -17,7 +18,7 @@
         <p>
             Reports analyze:
         </p>
-        <template is="dom-repeat" items="[[months]]" filter="_filterMonths">
+        <template is="dom-repeat" items="[[months]]" filter="{{_computeFilter(limit, months)}}">
             <p>[[item.month]]</p>
             <ul>
                 <template is="dom-repeat" items="[[item.data]]" as="person" sort="_sortNames">
@@ -29,7 +30,7 @@
             </ul>
         </template>
         <div class="text-center">
-            <button class$="btn btn-pseudo [[_showMoreClass(step, months.*)]]" on-tap="_showMore">Show more</button>
+            <paper-button hidden="{{_showMoreClass(limit, months.*)}}" on-tap="_showMore">Show more</paper-button>
         </div>
         <content></content>
     </template>
@@ -40,18 +41,18 @@
                 data: {type: Array, value: []},
                 months: {type: Array, value: []},
                 tst: Array,
-                visibleMonths: {
-                    type: Array,
-//                    computed: '_filterMonthsByIndex(months.*, step)'
-                },
                 step: {
                     type: Number,
                     value: 3
-                }
+                },
+                limit: Number
             },
             observers: [
                 '_countByMonth(data.*)'
             ],
+            ready: function () {
+                this.limit = this.step;
+            },
             _countByMonth: function (changeRecord) {
                 var i, j, k, mLength, month, noHave, data, length;
                 if (changeRecord.path === 'data.length') {
@@ -93,19 +94,20 @@
                 return 0;
             },
             _showMore: function () {
-                this.step += this.step;
+                this.limit += this.step;
             },
-            _showMoreClass: function (step, months) {
-                if (months.base) {
-                    if (this.step < this.months.length)
-                        return '';
-                    else
-                        return 'hidden';
-                }
+            _showMoreClass: function (limit, months) {
+                return limit >= months.base.length;
             },
             _filterMonths: function (item) {
                 var index = this.months.indexOf(item);
                 return index < 3;
+            },
+            _computeFilter: function (limit, months) {
+                return function (item) {
+                    var index = months.indexOf(item);
+                    return index < limit;
+                }
             }
         })
     </script>
