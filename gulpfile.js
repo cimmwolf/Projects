@@ -1,6 +1,4 @@
 var gulp = require('gulp');
-var sass = require('gulp-sass');
-var postCss = require('gulp-postcss');
 var autoprefixer = require('autoprefixer');
 var cssNano = require('cssnano');
 var cache = require('gulp-cached');
@@ -9,14 +7,8 @@ var cache = require('gulp-cached');
 var htmlMin = require('gulp-htmlmin');
 var postCssHtml = require('gulp-html-postcss');
 
-gulp.task('default', ['sass', 'components'], function () {
-    gulp.src('dist/css/*.css')
-        .pipe(postCss([
-            autoprefixer(),
-            cssNano({safe: true})
-        ]))
-        .pipe(gulp.dest('dist/css'));
-    gulp.src([
+gulp.task('compress_components', function () {
+    return gulp.src([
         'bower_components/iron-*/*.html',
         'bower_components/paper-*/*.html',
         'bower_components/google-*/*.html',
@@ -34,7 +26,10 @@ gulp.task('default', ['sass', 'components'], function () {
             minifyCSS: true
         }))
         .pipe(gulp.dest('bower_components'));
-    return gulp.src('dist/components/*')
+});
+
+gulp.task('publish', ['compress_components'], function () {
+    return gulp.src('src/**/*.html')
         .pipe(htmlMin({
             removeComments: true,
             preventAttributesEscaping: true,
@@ -46,16 +41,5 @@ gulp.task('default', ['sass', 'components'], function () {
             autoprefixer(),
             cssNano({safe: true})
         ]))
-        .pipe(gulp.dest('dist/components'));
-});
-
-gulp.task('sass', function () {
-    return gulp.src(['src/sass/*.sass'])
-        .pipe(sass({includePaths: ['bower_components/bootstrap-sass/assets/stylesheets']}).on('error', sass.logError))
-        .pipe(gulp.dest('dist/css'));
-});
-
-gulp.task('components', function () {
-    return gulp.src('src/components/*')
-        .pipe(gulp.dest('dist/components'));
+        .pipe(gulp.dest('src'));
 });
