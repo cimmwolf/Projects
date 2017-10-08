@@ -1,15 +1,36 @@
 <link rel="import" href="components/duration-string.html">
 <link rel="import" href="shared-styles/style-common.html">
+<link rel="import" href="/bower_components/paper-input/paper-input.html">
+<link rel="import" href="/bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="/bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="/bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="/bower_components/paper-item/paper-item.html">
 
 <dom-module id="view-user">
     <template>
-        <style is="custom-style" include="style-common"></style>
+        <style is="custom-style" include="style-common iron-flex iron-flex-alignment"></style>
+        <style is="custom-style" include="iron-flex iron-flex-alignment"></style>
+        <style>
+            paper-dropdown-menu + paper-input {
+                margin-left: 1em; }
+        </style>
 
+        <div class="container">
+            <div class="layout horizontal wrap">
+                <paper-dropdown-menu label="Project" value="{{_project}}">
+                    <paper-listbox class="dropdown-content" selected="0">
+                        <paper-item>All</paper-item>
+                        <template is="dom-repeat" items="{{projects}}" filter="filterProjects">
+                            <paper-item>{{item.name}}</paper-item>
+                        </template>
+                    </paper-listbox>
+                </paper-dropdown-menu>
 
-        <div class="content">
+                <paper-input value="{{_title}}" label="Title search"></paper-input>
+            </div>
             <table class="table">
                 <tbody>
-                <template is="dom-repeat" items="{{workData}}" sort="sort" filter="{{filter(_name)}}">
+                <template is="dom-repeat" items="{{workData}}" sort="sort" filter="{{filter(_name, _title, _project)}}">
                     <tr>
                         <td class="text-nowrap">[[longDate(item.date)]]
                         <td>{{projectName(item.id)}}
@@ -33,7 +54,9 @@
                         return [];
                     }
                 },
-                _name: {type: String, computed: '_getName(route.path)'}
+                _name: {type: String, computed: '_getName(route.path)'},
+                _title: {type: String, value: ''},
+                _project: {type: String, value: ''}
             },
             ready: function () {
                 this.loadingCountdown = this.projects.length;
@@ -66,15 +89,33 @@
                     if (project.id === id)
                         return project.name;
                 }
-
             },
-            filter: function (name) {
+            filter: function (name, title, project) {
                 return function (item) {
-                    return item.name === name
-                };
+                    var isMatch = item.name === name, regex, i, len, projectId, prjct;
+                    if (title) {
+                        regex = new RegExp(title, 'i');
+                        isMatch = isMatch && item.title.search(regex) >= 0;
+                    }
+
+                    if (project && project !== 'All') {
+                        for (i = 0, len = this.projects.length; i < len; i++) {
+                            prjct = this.projects[i];
+                            if (prjct.name === project)
+                                projectId = prjct.id;
+                        }
+                        if (projectId)
+                            isMatch = isMatch && item.id === projectId;
+                    }
+
+                    return isMatch;
+                }.bind(this);
             },
             _getName: function (path) {
                 return path.replace('/', '');
+            },
+            filterProjects: function(item) {
+                return !item.hidden;
             }
         })
     </script>
