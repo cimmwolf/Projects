@@ -23,7 +23,7 @@
             <ul>
                 <template is="dom-repeat" items="[[item.data]]" as="person" sort="_sortNames">
                     <li>
-                        <a href$="/user/[[person.name]]">[[person.name]]</a>:&nbsp;<duration-string
+                        <a href$="/reports/[[person.name]]">[[person.name]]</a>:&nbsp;<duration-string
                             minutes="[[person.value]]"></duration-string>
                     </li>
                 </template>

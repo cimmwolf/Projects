@@ -95,8 +95,8 @@
                     fallback-selection="view404"
                     role="main">
                 <view-projects name="projects" projects="[[projects]]" work-data="[[workData]]"></view-projects>
-                <view-user name="user" route="{{subroute}}" projects="[[projects]]"
-                           work-data="[[workData]]"></view-user>
+                <view-reports name="reports" route="{{subroute}}" projects="[[projects]]"
+                              work-data="[[workData]]"></view-reports>
             </iron-pages>
         </app-header-layout>
 
@@ -132,6 +132,7 @@
                             {id: '1neh8UNXY4o55ECxWyEasollNGUMAdd5ijHMRvrUPC90', name: 'Galin74.ru', hidden: true},
                             {id: '1rENFLWW7t8CJ1PWnzpJuKRmFDjeIJRxOj-voI7iEOkw', name: 'Integros.biz'},
                             {id: '1UNyAE-sS5c_YXwfA5PGALnUa0_EnUbpDsgUNDv_jB9o', name: 'Fondaero.ru'},
+                            {id: '1tLK68W4H7QrAbSDh7mY6hp2lSV7cXXIofxI9VqLwQlM', name: 'Eventstud.ru'},
                             {
                                 id: '1UrHA-gx3dTmKj2R4qBkp4jCnSGu8lb-O8RczC-oY-pY',
                                 name: 'Kasok.ru (партнёры)',
@@ -181,14 +182,19 @@
                 this.page = 'view404';
             },
             _computeTitle: function (page) {
-                var titles, title;
+                var titles, title, user;
                 titles = {
                     'projects': 'Vistro projects',
-                    'user': 'User detail'
+                    'reports': 'Reports'
                 };
                 title = titles[page] ? titles[page] : page;
-                if (page === 'user')
-                    title += ' ' + this.route.path.split('/')[2];
+                if (page === 'reports') {
+                    user = this.route.path.split('/')[2];
+                    if (user)
+                        title += ' ' + user;
+                    else
+                        title += ' of all users';
+                }
                 return title;
             },
             _signedChange: function (signedIn, previousValue) {
@@ -284,7 +290,7 @@
                 return daysSince01Jan1970 * 24 * 60 * 60 * 1000;
             },
             isSubPage: function (route) {
-                return route.path.split('/').length > 2
+                return route.path.split('/')[1];
             }
         });
     </script>

@@ -6,7 +6,7 @@
 <link rel="import" href="/bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="/bower_components/paper-item/paper-item.html">
 
-<dom-module id="view-user">
+<dom-module id="view-reports">
     <template>
         <style is="custom-style" include="style-common iron-flex iron-flex-alignment"></style>
         <style is="custom-style" include="iron-flex iron-flex-alignment"></style>
@@ -30,11 +30,22 @@
             </div>
             <table class="table">
                 <tbody>
+                <template is="dom-if" if="[[_title]]">
+                    <tr>
+                        <td colspan$="[[colspanForTotal(_name)]]" class="text-right">Итого:</td>
+                        <td><duration-string minutes="[[totalCount(_name, _title, _project)]]"></duration-string></td>
+                    </tr>
+                </template>
+                </tbody>
+                <tbody>
                 <template is="dom-repeat" items="{{workData}}" sort="sort" filter="{{filter(_name, _title, _project)}}">
                     <tr>
-                        <td class="text-nowrap">[[longDate(item.date)]]
-                        <td>{{projectName(item.id)}}
-                        <td>[[item.title]]
+                        <td class="text-nowrap">[[longDate(item.date)]]</td>
+                        <td>{{projectName(item.id)}}</td>
+                        <template is="dom-if" if="[[!_name]]">
+                            <td>[[item.name]]</td>
+                        </template>
+                        <td>[[item.title]]</td>
                         <td class="text-nowrap">
                             <duration-string minutes="[[item.value]]"></duration-string>
                 </template>
@@ -44,7 +55,7 @@
     </template>
     <script>
         Polymer({
-            is: 'view-user',
+            is: 'view-reports',
             properties: {
                 route: Object,
                 projects: Array,
@@ -92,7 +103,10 @@
             },
             filter: function (name, title, project) {
                 return function (item) {
-                    var isMatch = item.name === name, regex, i, len, projectId, prjct;
+                    var isMatch, regex, i, len, projectId, prjct;
+
+                    isMatch = !name || item.name === name;
+
                     if (title) {
                         regex = new RegExp(title, 'i');
                         isMatch = isMatch && item.title.search(regex) >= 0;
@@ -114,8 +128,20 @@
             _getName: function (path) {
                 return path.replace('/', '');
             },
-            filterProjects: function(item) {
+            filterProjects: function (item) {
                 return !item.hidden;
+            },
+            colspanForTotal: function (name) {
+                return name ? 3 : 4;
+            },
+            totalCount: function (name, title, project) {
+                var data, total;
+                total = 0;
+                data = this.workData.filter(this.filter(name, title, project));
+                for (var i = 0, len = data.length; i < len; i++) {
+                    total += data[i].value;
+                }
+                return total;
             }
         })
     </script>
