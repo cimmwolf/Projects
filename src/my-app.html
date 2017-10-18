@@ -11,7 +11,9 @@
 <link rel="import" href="/bower_components/google-signin/google-signin.html">
 <link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="/bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="/bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 <link rel="import" href="components/my-icons.html">
+<link rel="import" href="components/bitbucket-issues.html">
 
 <dom-module id="my-app">
     <template>
@@ -66,6 +68,8 @@
                 on-error="handleError"
                 params='{"includeGridData": true, "fields": "spreadsheetId,sheets.data.rowData.values.effectiveValue"}'></iron-ajax>
 
+        <app-localstorage-document key="bitbucketAccessToken"
+                                   data="{{bitbucketAccessToken}}"></app-localstorage-document>
         <app-location route="{{route}}" url-space-regex="^[[rootPath]]"></app-location>
         <app-route
                 route="{{route}}"
@@ -74,6 +78,8 @@
                 tail="{{subroute}}"></app-route>
 
 
+        <bitbucket-issues access-token="{{bitbucketAccessToken}}" repositories="{{repositories}}"
+                          issues="{{issues}}"></bitbucket-issues>
         <!-- Main content -->
         <app-header-layout>
 
@@ -94,8 +100,12 @@
                     attr-for-selected="name"
                     fallback-selection="view404"
                     role="main">
-                <view-desktop name="desktop" projects="[[projects]]" work-data="[[workData]]" on-progress="onProgress"
-                              id="desktop"></view-desktop>
+                <view-desktop id="desktop"
+                              name="desktop"
+                              projects="[[projects]]"
+                              work-data="[[workData]]"
+                              repositories="[[repositories]]"
+                              issues="[[issues]]"></view-desktop>
                 <view-reports name="reports" route="{{subroute}}" projects="[[projects]]"
                               work-data="[[workData]]"></view-reports>
             </iron-pages>
@@ -164,6 +174,9 @@
                     }
                 },
                 progressCounter: {type: Number, value: 0},
+                bitbucketAccessToken: String,
+                repositories: Array,
+                issues: Array,
                 _progress: {
                     type: Array,
                     value: function () {
@@ -174,6 +187,9 @@
             observers: [
                 '_routePageChanged(routeData.page)'
             ],
+            listeners: {
+                'progress': 'onProgress'
+            },
 
             _routePageChanged: function (page) {
                 this.page = page || 'desktop';
@@ -285,7 +301,7 @@
                 this.progressCounter++;
                 this.progress();
             },
-            progress: function (e) {
+            progress: function () {
                 var total, i, len, current;
                 total = this.projects.length;
                 current = this.progressCounter;

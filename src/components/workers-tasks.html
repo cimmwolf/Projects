@@ -1,7 +1,5 @@
 <link rel="import" href="/bower_components/polymer/polymer.html">
 <link rel="import" href="/bower_components/paper-button/paper-button.html">
-<link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="/bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 
 <dom-module id="workers-tasks">
     <template>
@@ -15,20 +13,6 @@
 
             :host(.logged-in) paper-button { display: none }
         </style>
-
-        <iron-ajax
-                id="projects"
-                url="https://api.bitbucket.org/2.0/repositories/vistro/"
-                handle-as="json"
-                on-response="handleProjects"
-                on-error="removeToken"></iron-ajax>
-
-        <iron-ajax
-                id="issues"
-                handle-as="json"
-                on-response="getIssues"></iron-ajax>
-
-        <app-localstorage-document key="bibucketAccessToken" data="{{accessToken}}"></app-localstorage-document>
 
         <p>Tasks report:</p>
 
@@ -60,70 +44,14 @@
         Polymer({
             is: 'workers-tasks',
             properties: {
-                accessToken: {type: String, observer: 'tokenChanged'},
-                repositories: {
-                    type: Array,
-                    value: function () {
-                        return [];
-                    }
-                },
-                issues: {
-                    type: Array,
-                    value: function () {
-                        return [];
-                    }
-                },
-                countOfRepositories: Number,
-                countOfRequests: {type: Number, value: 0}
+                repositories: Array,
+                issues: Array
             },
             observers: [
-                'progress(countOfRepositories, countOfRequests)'
+                'hideLogInButton(repositories.length, issues.length)'
             ],
-            ready: function () {
-                if (window.location.href.match('#access_token'))
-                    this.accessToken = decodeURIComponent(window.location.href.replace(/^.*?#access_token=(.*?)\&.*$/, '$1').replace(/\+/g, ' '));
-            },
-            bitbucketAuth: function () {
-                window.location.href = 'https://bitbucket.org/site/oauth2/authorize?client_id=ZmyJ9sXcmxUSmRruk9&response_type=token';
-            },
-            tokenChanged: function () {
-                if (this.accessToken) {
-                    this.$.projects.params = {access_token: this.accessToken, pagelen: 100};
-                    this.$.projects.generateRequest();
-                } else
-                    this.$$('app-localstorage-document').destroy();
-            },
-            handleProjects: function (e) {
-                var repo;
-                this.toggleClass('logged-in', true);
-                for (var i = 0, len = e.detail.response.values.length; i < len; i++) {
-                    repo = e.detail.response.values[i];
-                    if (repo.has_issues)
-                        this.repositories.push(repo.slug);
-                }
-                this.countOfRepositories = this.repositories.length;
-                this.getIssues();
-            },
-            getIssues: function (e) {
-                var repo, issue;
-                if (e && e.detail.response) {
-                    for (var i = 0, len = e.detail.response.values.length; i < len; i++) {
-                        issue = e.detail.response.values[i];
-                        this.push('issues', issue);
-                    }
-                    this.countOfRequests++;
-                }
-
-                if (this.repositories.length > 0) {
-                    repo = this.shift('repositories');
-                    this.$.issues.url = 'https://api.bitbucket.org/2.0/repositories/vistro/' + repo + '/issues';
-                    this.$.issues.params = {
-                        access_token: this.accessToken,
-                        pagelen: 100,
-                        q: '(state != "closed" AND state != "resolved")'
-                    };
-                    this.$.issues.generateRequest();
-                }
+            hideLogInButton: function (reps, issues) {
+                this.toggleClass('logged-in', reps + issues > 0)
             },
             users: function () {
                 var users = [], issue;
@@ -147,9 +75,6 @@
                         count++;
                 }
                 return count;
-            },
-            progress: function (max, current) {
-                this.fire('progress', {id: 'tasks', current: current, max: max});
             },
             removeToken: function () {
                 this.toggleClass('logged-in', false);

@@ -10,7 +10,7 @@
             <projects-list data="[[projects]]" class="container-fluid pull-left"></projects-list>
             <work-counter id="workCounter" class="pull-left container-fluid"
                           months="[[months]]"></work-counter>
-            <workers-tasks class="container-fluid pull-left"></workers-tasks>
+            <workers-tasks class="container-fluid pull-left" repositories="[[repositories]]" issues="[[issues]]"></workers-tasks>
         </div>
 
     </template>
@@ -26,7 +26,9 @@
                     type: Array, value: function () {
                         return []
                     }
-                }
+                },
+                repositories: Array,
+                issues: Array
             },
             observers: ['_countByMonth(workData.*)'],
             _countByMonth: function (projects) {
