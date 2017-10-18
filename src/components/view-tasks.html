@@ -1,0 +1,37 @@
+<dom-module id="view-tasks">
+    <template>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Open</th>
+                <th>Resolved</th>
+                <th>On Hold</th>
+            </tr>
+            </thead>
+            <tbody>
+            <template is="dom-repeat" items="[[issues]]">
+                <tr>
+                    <td>[[item.repository.name]]</td>
+                    <td>[[item.priority]]</td>
+                    <td>[[item.title]]</td>
+                    <td>[[item.state]]</td>
+                </tr>
+            </template>
+            </tbody>
+        </table>
+    </template>
+    <script>
+        Polymer({
+            is: 'view-tasks',
+            properties: {
+                route: Object,
+                issues: Array,
+                _name: {type: String, computed: '_getName(route.path)'}
+            },
+            _getName: function (path) {
+                return path.replace('/', '');
+            }
+        })
+    </script>
+</dom-module>

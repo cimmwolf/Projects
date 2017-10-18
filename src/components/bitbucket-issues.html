@@ -38,13 +38,11 @@
             observers: [
                 'progress(countOfRepositories, countOfRequests)'
             ],
-            ready: function () {
-                if (window.location.href.match('#access_token'))
-                    this.accessToken = decodeURIComponent(window.location.href.replace(/^.*?#access_token=(.*?)\&.*$/, '$1').replace(/\+/g, ' '));
-            },
-            tokenChanged: function () {
-                this.$.projects.params = {access_token: this.accessToken, pagelen: 100};
-                this.$.projects.generateRequest();
+            tokenChanged: function (token) {
+                if (token) {
+                    this.$.projects.params = {access_token: token, pagelen: 100};
+                    this.$.projects.generateRequest();
+                }
             },
             handleProjects: function (e) {
                 var repo;
@@ -83,7 +81,6 @@
             },
             removeToken: function () {
                 this.toggleClass('logged-in', false);
-                this.accessToken = '';
             }
         })
     </script>

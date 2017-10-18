@@ -50,6 +50,9 @@
             observers: [
                 'hideLogInButton(repositories.length, issues.length)'
             ],
+            bitbucketAuth: function () {
+                window.location.href = 'https://bitbucket.org/site/oauth2/authorize?client_id=ZmyJ9sXcmxUSmRruk9&response_type=token';
+            },
             hideLogInButton: function (reps, issues) {
                 this.toggleClass('logged-in', reps + issues > 0)
             },

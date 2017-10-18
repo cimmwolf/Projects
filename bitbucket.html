@@ -9,11 +9,26 @@
     <script src="/bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
     <title>Ссылки на файлы отчётов</title>
 
-    <link rel="import" href="/src/components/bitbucket-issues.html">
+    <script>
+        document.addEventListener('WebComponentsReady', function () {
+            var accessToken, localstorage;
+            if (window.location.href.match('#access_token')) {
+                accessToken = decodeURIComponent(window.location.href.replace(/^.*?#access_token=(.*?)\&.*$/, '$1').replace(/\+/g, ' '));
+                localstorage = document.querySelector('app-localstorage-document');
+                localstorage.addEventListener('data-changed', function () {
+                    window.location.href = '/';
+                });
+                localstorage.data = accessToken;
+            }
+
+        });
+    </script>
+
+    <link rel="import" href="/bower_components/app-storage/app-localstorage/app-localstorage-document.html">
 </head>
 <body>
 
-<bitbucket-issues></bitbucket-issues>
+<app-localstorage-document key="bitbucketAccessToken"></app-localstorage-document>
 
 </body>
 </html>
