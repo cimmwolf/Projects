@@ -94,7 +94,8 @@
                     attr-for-selected="name"
                     fallback-selection="view404"
                     role="main">
-                <view-projects name="projects" projects="[[projects]]" work-data="[[workData]]"></view-projects>
+                <view-desktop name="desktop" projects="[[projects]]" work-data="[[workData]]" on-progress="onProgress"
+                              id="desktop"></view-desktop>
                 <view-reports name="reports" route="{{subroute}}" projects="[[projects]]"
                               work-data="[[workData]]"></view-reports>
             </iron-pages>
@@ -161,15 +162,21 @@
                     value: function () {
                         return [];
                     }
+                },
+                progressCounter: {type: Number, value: 0},
+                _progress: {
+                    type: Array,
+                    value: function () {
+                        return [];
+                    }
                 }
             },
-
             observers: [
                 '_routePageChanged(routeData.page)'
             ],
 
             _routePageChanged: function (page) {
-                this.page = page || 'projects';
+                this.page = page || 'desktop';
             },
 
             _pageChanged: function (page) {
@@ -184,7 +191,7 @@
             _computeTitle: function (page) {
                 var titles, title, user;
                 titles = {
-                    'projects': 'Vistro projects',
+                    'desktop': 'Vistro projects',
                     'reports': 'Reports'
                 };
                 title = titles[page] ? titles[page] : page;
@@ -223,7 +230,7 @@
                 }
             },
             handleResponse: function (e) {
-                var id, index, i, row,
+                var i, row,
                     done = 0,
                     rowData = e.detail.response.sheets[0].data[0].rowData,
                     length = rowData.length,
@@ -275,14 +282,41 @@
                     }
                     return true
                 }, this);
+                this.progressCounter++;
                 this.progress();
             },
-            progress: function () {
-                this.loadingCountdown -= 1;
-                this.$.progress.value = Math.round((this.projects.length - this.loadingCountdown) * (100 / this.projects.length));
-                if (this.loadingCountdown === 0) {
-                    this.$.progress.disabled = true;
+            progress: function (e) {
+                var total, i, len, current;
+                total = this.projects.length;
+                current = this.progressCounter;
+                for (i = 0, len = this._progress.length; i < len; i++) {
+                    total += this._progress[i].max;
+                    current += this._progress[i].current;
                 }
+
+                this.$.progress.value = Math.round(current / total * 100);
+                if (total === current)
+                    this.$.progress.disabled = true;
+            },
+            onProgress: function (e) {
+                var find, el, len, i;
+                find = false;
+                el = {id: e.detail.id};
+                for (i = 0, len = this._progress.length; i < len; i++) {
+                    el = this._progress[i];
+                    if (el.id === e.detail.id) {
+                        find = true;
+                        break;
+                    }
+                }
+
+                el.max = e.detail.max;
+                el.current = e.detail.current;
+
+                if (!find)
+                    this.push('_progress', el);
+
+                this.progress();
             },
             convert2JsTimestamp: function (value) {
                 var daysSince01Jan1970 = value - 25569; // 25569 = days TO Unix Time Reference

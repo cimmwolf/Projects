@@ -1,7 +1,8 @@
 <link rel="import" href="components/work-counter.html">
 <link rel="import" href="components/projects-list.html">
+<link rel="import" href="components/workers-tasks.html">
 
-<dom-module id="view-projects">
+<dom-module id="view-desktop">
     <template>
         <style is="custom-style" include="style-common"></style>
 
@@ -9,12 +10,13 @@
             <projects-list data="[[projects]]" class="container-fluid pull-left"></projects-list>
             <work-counter id="workCounter" class="pull-left container-fluid"
                           months="[[months]]"></work-counter>
+            <workers-tasks class="container-fluid pull-left"></workers-tasks>
         </div>
 
     </template>
     <script>
         Polymer({
-            is: 'view-projects',
+            is: 'view-desktop',
             properties: {
                 projects: Array,
                 workData: {
@@ -28,16 +30,15 @@
             },
             observers: ['_countByMonth(workData.*)'],
             _countByMonth: function (projects) {
-                var i, j, k, mLength, month, noHave, data, length, months = [], len;
-                if (projects.path === 'workData.length') {
+                if (projects.path === 'workData.length')
                     this.addData(projects.base[projects.value - 1]);
-                } else if (projects.path === 'workData') {
-                    for (i = 0, len = projects.base.length; i < len; i++)
+                else if (projects.path === 'workData') {
+                    for (var i = 0, len = projects.base.length; i < len; i++)
                         this.addData(projects.base[i]);
                 }
             },
             addData: function (data) {
-                var i, j, k, mLength, month, noHave, length, months = [];
+                var j, k, mLength, month, noHave;
                 noHave = true;
 
                 var l = 0, momentMonth = moment().utc().startOf('month');
