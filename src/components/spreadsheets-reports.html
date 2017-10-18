@@ -1,0 +1,132 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/google-signin/google-signin.html">
+<link rel="import" href="/bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="spreadsheets-reports">
+    <template>
+        <style>
+            :host {
+                position: absolute;
+                bottom: 55vh;
+                right: calc(50vw - 46px);
+                transition: right 300ms, bottom 300ms;
+            }
+
+            :host(.signed-in) {
+                position: fixed;
+                bottom: 15px;
+                right: 15px;
+            }
+        </style>
+        <iron-ajax
+                id="ajax"
+                handle-as="json"
+                on-response="handleResponse"
+                on-error="handleError"
+                params='{"includeGridData": true, "fields": "spreadsheetId,sheets.data.rowData.values.effectiveValue"}'></iron-ajax>
+
+        <google-signin
+                theme="dark"
+                scopes="https://www.googleapis.com/auth/spreadsheets.readonly"
+                client-id="182325291554-sot8bgmf73k9p6ifal0h4vccourcf5pu.apps.googleusercontent.com"
+                signed-in="{{signedIn}}"></google-signin>
+    </template>
+    <script>
+        Polymer({
+            is: 'spreadsheets-reports',
+            properties: {
+                projects: {type: Array, notify: true},
+                workData: {type: Array, notify: true},
+                progressCounter: {type: Number, value: 0},
+                signedIn: {
+                    type: Boolean,
+                    observer: '_signedChange'
+                }
+            },
+            _signedChange: function (signedIn, previousValue) {
+                this.toggleClass('signed-in', signedIn);
+
+                if (signedIn) {
+                    var i,
+                        length = this.projects.length,
+                        oauthToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+
+                    this.$.ajax.headers = {
+                        'Authorization': 'Bearer ' + oauthToken.access_token
+                    };
+                    for (i = 0; i < length; i++) {
+                        this.$.ajax.url = 'https://sheets.googleapis.com/v4/spreadsheets/' + this.projects[i].id;
+                        this.$.ajax.generateRequest();
+                    }
+                } else if (previousValue) {
+                    gapi.auth2.getAuthInstance().disconnect();
+                    this.projects = [];
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 300);
+                }
+            },
+            handleResponse: function (e) {
+                var i, row,
+                    done = 0,
+                    rowData = e.detail.response.sheets[0].data[0].rowData,
+                    length = rowData.length,
+                    firstRow = rowData[0].values, projectIndex;
+
+                for (i = 2; i < length; i++) {
+                    row = rowData[i];
+                    if (row.values != null && row.values[0].effectiveValue != null && row.values[1].effectiveValue != null && row.values[10].effectiveValue != null) {
+                        done += row.values[10].effectiveValue.numberValue;
+                    }
+                }
+
+                projectIndex = false;
+                for (i = 0; i < this.projects.length; i++) {
+                    if (this.projects[i].id === e.detail.response.spreadsheetId) {
+                        this.set('projects.' + i + '.deadline', this.convert2JsTimestamp(firstRow[2].effectiveValue.numberValue));
+                        this.set('projects.' + i + '.workload', parseInt(firstRow[4].effectiveValue.numberValue) * 60);
+                        this.set('projects.' + i + '.workloadTail', parseInt(firstRow[firstRow.length - 1].effectiveValue.numberValue));
+                        this.set('projects.' + i + '.done', done);
+                        projectIndex = i;
+                        break;
+                    }
+                }
+
+                e.detail.response.sheets.every(function (sheet) {
+                    var i, row,
+                        length = sheet.data[0].rowData.length, logEntry;
+
+                    if (length < 11)
+                        return false;
+
+                    for (i = 2; i < length; i++) {
+                        row = sheet.data[0].rowData[i];
+                        if (row.values && row.values.length > 10 && row.values[0].effectiveValue && row.values[1].effectiveValue && row.values[10].effectiveValue) {
+                            logEntry = {
+                                id: e.detail.response.spreadsheetId,
+                                title: row.values[2].effectiveValue.stringValue,
+                                name: row.values[0].effectiveValue.stringValue,
+                                date: this.convert2JsTimestamp(row.values[1].effectiveValue.numberValue),
+                                value: row.values[10].effectiveValue.numberValue
+                            };
+                            this.push('workData', logEntry);
+                            if (projectIndex !== false)
+                                if (typeof this.projects[projectIndex].log === 'undefined')
+                                    this.set('projects.' + projectIndex + '.log', [logEntry]);
+                                else
+                                    this.push('projects.' + projectIndex + '.log', logEntry)
+                        }
+                    }
+                    return true
+                }, this);
+                this.progressCounter++;
+                this.fire('progress', {id: 'reports', current: this.progressCounter, max: this.projects.length});
+            },
+            convert2JsTimestamp: function (value) {
+                var daysSince01Jan1970 = value - 25569; // 25569 = days TO Unix Time Reference
+                // Convert to numeric unix time
+                return daysSince01Jan1970 * 24 * 60 * 60 * 1000;
+            }
+        })
+    </script>
+</dom-module>
