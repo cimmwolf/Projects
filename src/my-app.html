@@ -88,6 +88,8 @@
                               issues="[[issues]]"></view-desktop>
                 <view-reports name="reports" route="{{subroute}}" projects="[[projects]]"
                               work-data="[[workData]]"></view-reports>
+
+                <view-tasks name="tasks" route="{{subroute}}" issues="[[issues]]"></view-tasks>
             </iron-pages>
         </app-header-layout>
         <spreadsheets-reports projects="{{projects}}" work-data="{{workData}}"></spreadsheets-reports>
@@ -123,17 +125,6 @@
                                 name: 'Kasok.ru (партнёры)',
                                 hidden: true
                             }
-                        ]
-                    }
-                },
-                users: {
-                    type: Array,
-                    value: function () {
-                        return [
-                            {'name': 'Алена'},
-                            {'name': 'Дарья'},
-                            {'name': 'Денис'},
-                            {'name': 'Ксения'}
                         ]
                     }
                 },
@@ -177,10 +168,11 @@
                 var titles, title, user;
                 titles = {
                     'desktop': 'Vistro projects',
-                    'reports': 'Reports'
+                    'reports': 'Reports',
+                    'tasks': 'Tasks'
                 };
                 title = titles[page] ? titles[page] : page;
-                if (page === 'reports') {
+                if (page === 'reports' || page === 'tasks') {
                     user = this.route.path.split('/')[2];
                     if (user)
                         title += ' ' + user;

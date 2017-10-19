@@ -31,7 +31,7 @@
             <tbody>
             <template is="dom-repeat" items="[[users(issues.splices)]]">
                 <tr>
-                    <td>[[item]]</td>
+                    <td><a href$="/tasks/[[item]]">[[item]]</a></td>
                     <td class="text-right">[[countOfIssues(issues.splices, item, "open")]]</td>
                     <td class="text-right">[[countOfIssues(issues.splices, item, "resolved")]]</td>
                     <td class="text-right">[[countOfIssues(issues.splices, item, "on hold")]]</td>

@@ -71,7 +71,7 @@
                     this.$.issues.params = {
                         access_token: this.accessToken,
                         pagelen: 100,
-                        q: '(state != "closed" AND state != "resolved")'
+                        q: '(state != "closed" AND state != "resolved" AND state != "wontfix" AND state != "duplicate" AND state != "invalid") OR (reporter.username != "cimmwolf" AND reporter.username != "ivda" AND state = "resolved")'
                     };
                     this.$.issues.generateRequest();
                 }

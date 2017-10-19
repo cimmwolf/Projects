@@ -1,0 +1,96 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+
+<dom-module id="view-tasks">
+    <template>
+        <style is="custom-style" include="style-common"></style>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Project</th>
+                <th>Assigned to</th>
+                <th>Priority</th>
+                <th>Title</th>
+                <th>State</th>
+            </tr>
+            </thead>
+            <tbody>
+            <template is="dom-repeat" items="[[issues]]" filter="{{filter(_name)}}" sort="sort">
+                <tr>
+                    <td>[[item.repository.name]]</td>
+                    <td>[[item.assignee.display_name]]</td>
+                    <td>[[item.priority]]</td>
+                    <td>[[item.title]]</td>
+                    <td>[[item.state]]</td>
+                </tr>
+            </template>
+            </tbody>
+        </table>
+    </template>
+    <script>
+        Polymer({
+            is: 'view-tasks',
+            properties: {
+                route: Object,
+                issues: Array,
+                _name: {type: String, computed: '_getName(route.path)'}
+            },
+            _getName: function (path) {
+                return path.replace('/', '');
+            },
+            filter: function (name, title, project) {
+                return function (item) {
+                    var isMatch, regex, i, len, projectId, prjct;
+
+                    if (!name)
+                        isMatch = true;
+                    else if (!item.assignee)
+                        isMatch = false;
+                    else
+                        isMatch = item.assignee.display_name === name;
+
+                    if (title) {
+                        regex = new RegExp(title, 'i');
+                        isMatch = isMatch && item.title.search(regex) >= 0;
+                    }
+
+                    if (project && project !== 'All') {
+                        for (i = 0, len = this.projects.length; i < len; i++) {
+                            prjct = this.projects[i];
+                            if (prjct.name === project)
+                                projectId = prjct.id;
+                        }
+                        if (projectId)
+                            isMatch = isMatch && item.id === projectId;
+                    }
+
+                    return isMatch;
+                }.bind(this);
+            },
+            sort: function (a, b) {
+                var array, i, item;
+                array = [a, b];
+                for (i = 0; i < 2; i++) {
+                    item = array[i];
+                    switch (item.priority) {
+                        case 'trivial':
+                            item.priorityInt = 1;
+                            break;
+                        case 'minor':
+                            item.priorityInt = 2;
+                            break;
+                        case 'major':
+                            item.priorityInt = 3;
+                            break;
+                        case 'critical':
+                            item.priorityInt = 4;
+                            break;
+                        case 'blocker':
+                            item.priorityInt = 5;
+                            break;
+                    }
+                }
+                return array[1].priorityInt - array[0].priorityInt;
+            }
+        })
+    </script>
+</dom-module>
