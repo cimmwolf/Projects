@@ -38,7 +38,6 @@
         Polymer({
             is: 'work-counter',
             properties: {
-                data: {type: Array, value: []},
                 months: {type: Array, value: []},
                 tst: Array,
                 step: {
@@ -47,42 +46,8 @@
                 },
                 limit: Number
             },
-            observers: [
-                '_countByMonth(data.*)'
-            ],
             ready: function () {
                 this.limit = this.step;
-            },
-            _countByMonth: function (changeRecord) {
-                var i, j, k, mLength, month, noHave, data, length;
-                if (changeRecord.path === 'data.length') {
-                    data = changeRecord.base[changeRecord.value - 1];
-                    noHave = true;
-                    j = this._generateMonths(data.date);
-                    mLength = this.months[j].data.length;
-                    for (k = 0; k < mLength; k++) {
-                        month = this.months[j].data[k];
-                        if (month.name === data.name) {
-                            noHave = false;
-                            this.set('months.' + j + '.data.' + k + '.value', month.value + data.value)
-                        }
-                    }
-                    if (noHave)
-                        this.push('months.' + j + '.data', {name: data.name, value: data.value});
-                }
-            },
-            _generateMonths: function (date) {
-                var i = 0, month = moment().utc().startOf('month');
-
-                do {
-                    if (this.months[i++] == null)
-                        this.push('months', {month: month.format('MMM, YY'), data: []});
-                    month.subtract(1, 'months');
-                } while (!month.isBefore(date, 'month'));
-                return i - 1;
-            },
-            _filterMonthsByIndex: function (months, step) {
-                return months.base.slice(0, step);
             },
             _sortNames: function (a, b) {
                 if (a.name > b.name) {
@@ -98,10 +63,6 @@
             },
             _showMoreClass: function (limit, months) {
                 return limit >= months.base.length;
-            },
-            _filterMonths: function (item) {
-                var index = this.months.indexOf(item);
-                return index < 3;
             },
             _computeFilter: function (limit, months) {
                 return function (item) {

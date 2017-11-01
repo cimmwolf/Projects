@@ -10,7 +10,8 @@
             <projects-list data="[[projects]]" class="container-fluid pull-left"></projects-list>
             <work-counter id="workCounter" class="pull-left container-fluid"
                           months="[[months]]"></work-counter>
-            <workers-tasks class="container-fluid pull-left" repositories="[[repositories]]" issues="[[issues]]"></workers-tasks>
+            <workers-tasks class="container-fluid pull-left" repositories="[[repositories]]"
+                           issues="[[issues]]"></workers-tasks>
         </div>
 
     </template>
@@ -46,14 +47,13 @@
                 var l = 0, momentMonth = moment().utc().startOf('month');
 
                 do {
-                    if (!this.months || !this.months[l++])
+                    if (!this.months[l++])
                         this.push('months', {month: momentMonth.format('MMM, YY'), data: []});
                     momentMonth.subtract(1, 'months');
                 } while (!momentMonth.isBefore(data.date, 'month'));
                 j = l - 1;
 
-                mLength = this.months[j].data.length;
-                for (k = 0; k < mLength; k++) {
+                for (k = 0, mLength = this.months[j].data.length; k < mLength; k++) {
                     month = this.months[j].data[k];
                     if (month.name === data.name) {
                         noHave = false;
